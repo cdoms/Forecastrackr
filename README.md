@@ -1,2 +1,2 @@
 # ShinyTrack
-Shiny app for tracking prediction accuracy
+Shiny app for tracking prediction accuracy across forecasting websites
