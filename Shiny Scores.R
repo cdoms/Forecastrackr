@@ -57,8 +57,8 @@ ui <- fluidPage(
     
   #   # Define the sidebar with one input
    sidebarPanel(
-      selectInput("tourney", "Select Tourney:", choices = c("mens", "womens")),
-      selected = "mens"
+      selectInput("tourney", "Select Tourney:", choices = c("Mens", "Womens")),
+      selected = "Mens"
     ),
     
     # Create a spot for the barplot
@@ -68,17 +68,24 @@ ui <- fluidPage(
     
   )
 )
+
 server <- function(input, output) {
   
   # Fill in the spot we created for a plot
   output$brierPlot <- renderPlot({
     data <- switch(input$tourney,
-                   "mens" = all[all$tourney == "mens",],
-                   "womens" = all[all$tourney == "womens",])
+                   "Mens" = all[all$tourney == "mens",],
+                   "Womens" = all[all$tourney == "womens",])
     
     # Render a barplot
     ggplot(data = data,
-           aes(x = Site, y=Avg_Brier)) + geom_bar(stat = "identity")
+           aes(x = Site, y=Avg_Brier)) + geom_bar(stat = "identity", fill = "lightslategray") + 
+      xlab("Website") + ylab("Avg. Brier Score") +
+      theme_bw() + 
+      theme(axis.line = element_line(colour = "gray"),
+            panel.border = element_blank(),
+            panel.background = element_blank()) +
+      scale_y_continuous(limits=c(0,0.25))
   })
 }
 
