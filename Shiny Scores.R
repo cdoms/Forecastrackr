@@ -9,14 +9,12 @@ library(data.table)
 ## first step: retrieve data
 mens <- read_csv("https://raw.githubusercontent.com/cdoms/ShinyTrack/master/Mens%20NCAA%20Tourney%20Probabilities%202018.csv")
 womens <- read_csv("https://raw.githubusercontent.com/cdoms/ShinyTrack/master/Womens%20NCAA%20Tourney%20Probabilities%202018.csv")
+nba <- read_csv("https://raw.githubusercontent.com/cdoms/ShinyTrack/master/NBA%20Playoffs%20Probabilities.csv")
 
-## make sure there are 63 games per site and each row matches for round, team, and result
-
-mens %>%
-  count(Site)
-
-womens %>%
-  count(Site)
+colnames(nba)[8] <- "Result"
+nba <- nba[nba$Round == 1,]
+nba <- nba[!nba$Site == "Vegas",]
+mens <- mens[!mens$Site == "Vegas",]
 
 ## exclude ESPN BPI for womens because I could only find their predictions for the first round
 
@@ -27,40 +25,39 @@ womens <- womens[womens$Site != "ESPN BPI",]
 womens$`High Seed in Game` <- mapvalues(womens$`High Seed in Game`, 
                                               from = "Lousville", to = "Louisville")
 
-mens <- brierscore(Result ~ `Probability High Seed Wins`,
-           data = mens, 
-           group = "Site")
+## function for computing average brier
 
-mens <- as.data.frame(mens$brieravg)
-
-mens <- setDT(mens, keep.rownames = TRUE)[]
-colnames(mens)[1:2] <- c("Site", "Avg_Brier")
-## get rid of Vegas for now
-mens <- mens[1:5,]
-
-womens <- brierscore(Result ~ `Probability High Seed Wins`,
-                     data = womens, 
+compute_brier <- function(df){
+  df <- brierscore(Result ~ `Probability High Seed Wins`,
+                     data = df, 
                      group = "Site")
+  df <- as.data.frame(df$brieravg)
+  df <- setDT(df, keep.rownames = TRUE)[]
+  colnames(df)[1:2] <- c("Site", "Avg_Brier")
+  return(df)
+}
 
-womens <- as.data.frame(womens$brieravg)
-womens <- setDT(womens, keep.rownames = TRUE)[]
-colnames(womens)[1:2] <- c("Site", "Avg_Brier")
-womens$tourney <- c("womens", "womens")
-mens$tourney <- c("mens", "mens", "mens", "mens", "mens")
-all <- rbind(mens, womens)
+df_list <- list(mens, womens, nba)
+
+
+
+womens$sport <- c("womens", "womens")
+mens$sport <- c("mens", "mens", "mens", "mens", "mens")
+nba$sport <- c("nba", "nba", "nba")
+all <- rbind(mens, womens, nba)
 ui <- fluidPage(  
   
   # Give the page a title
-  titlePanel("Accuracy by Tourney"),
+  titlePanel("Accuracy by Sport"),
   # # Generate a row with a sidebar
    sidebarLayout(      
     
   #   # Define the sidebar with one input
    sidebarPanel(
-      selectInput("tourney", "Select Tourney:", choices = c("Mens", "Womens")),
-      selected = "Mens"
+      selectInput("sport", "Select Sport:", choices = c("Men's", "Women's", "NBA")),
+      selected = "Men's"
     ),
-    
+   
     # Create a spot for the barplot
     mainPanel(
      plotOutput("brierPlot")  
@@ -73,9 +70,10 @@ server <- function(input, output) {
   
   # Fill in the spot we created for a plot
   output$brierPlot <- renderPlot({
-    data <- switch(input$tourney,
-                   "Mens" = all[all$tourney == "mens",],
-                   "Womens" = all[all$tourney == "womens",])
+    data <- switch(input$sport,
+                   "Men's" = all[all$sport == "mens",],
+                   "Women's" = all[all$sport == "womens",],
+                   "NBA" = all[all$sport == "nba",])
     
     # Render a barplot
     ggplot(data = data,
