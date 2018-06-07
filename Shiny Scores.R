@@ -5,7 +5,6 @@ library(dplyr)
 library(ggplot2)
 library(scoring)
 library(data.table)
-library(plotly)
 
 ## first step: retrieve data
 mens <- read_csv("https://raw.githubusercontent.com/cdoms/ShinyTrack/master/Mens%20NCAA%20Tourney%20Probabilities%202018.csv")
@@ -48,39 +47,36 @@ nba$sport <- c("nba", "nba", "nba")
 all <- rbind(mens, womens, nba)
 ui <- fluidPage(  
   
-  # Give the page a title
   titlePanel("Accuracy by sport", windowTitle = "Site Prediction Accuracy"),
-  # # Generate a row with a sidebar
-   sidebarLayout(      
+
+     sidebarLayout(      
     
-  #   # Define the sidebar with one input
    sidebarPanel(
       selectInput("sport", "Select Sport:", choices = c("Men's Tourney", "Women's Tourney", "NBA Playoffs")),
       selected = "Men's",
-      br(),
       br(),
       p("These are average brier scores from the sites I tracked for the 2018 Men's and Women's NCAA Tournament. The first round and the Finals are also included for the NBA Playoffs."),
       p("Like golf, the lower the brier score the better.")
 ),
    
-    # Create a spot for the barplot
+    # Create barplot
     mainPanel(
-     plotlyOutput("brierPlot")
+     plotOutput("brierPlot")
   )
 )
 )
 
 server <- function(input, output) {
   
-  # Fill in the spot we created for a plot
-  output$brierPlot <- renderPlotly({
+  # Fill in plot
+  output$brierPlot <- renderPlot({
     data <- switch(input$sport,
                    "Men's Tourney" = all[all$sport == "mens",],
                    "Women's Tourney" = all[all$sport == "womens",],
                    "NBA Playoffs" = all[all$sport == "nba",])
     
-    # Render a barplot
-    p <- ggplot(data = data,
+    # barplot
+    ggplot(data = data,
            aes(x = Site, y=Avg_Brier)) + geom_bar(stat = "identity", fill = "dodgerblue3") + 
       theme_bw() + 
       theme(axis.line = element_line(colour = "gray"),
@@ -90,9 +86,7 @@ server <- function(input, output) {
             axis.title.y = element_blank()) +
       scale_y_continuous(limits=c(0,0.25))
     
-    ggplotly(p)
   })
 }
 
 shinyApp(ui, server)
-
