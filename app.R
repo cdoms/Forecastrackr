@@ -1,7 +1,6 @@
 library(shiny)
 library(readr)
 library(plyr)
-library(dplyr)
 library(ggplot2)
 library(scoring)
 library(data.table)
@@ -44,24 +43,33 @@ nba <- compute_brier(nba)
 womens$sport <- c("womens", "womens")
 mens$sport <- c("mens", "mens", "mens", "mens", "mens")
 nba$sport <- c("nba", "nba", "nba")
+
+
+
 all <- rbind(mens, womens, nba)
+all$Site <- mapvalues(all$Site, 
+                       from = "FiveThirtyEight", to = "538")
 ui <- fluidPage(  
   
-  titlePanel("Accuracy by sport", windowTitle = "Site Prediction Accuracy"),
-
-     sidebarLayout(      
+  titlePanel("Accuracy by sport", windowTitle = "Forecastrackr"),
     
    sidebarPanel(
       selectInput("sport", "Select Sport:", choices = c("Men's Tourney", "Women's Tourney", "NBA Playoffs")),
       selected = "Men's",
-      br(),
-      p("These are average brier scores from the sites I tracked for the 2018 Men's and Women's NCAA Tournament. The first round and the Finals are also included for the NBA Playoffs."),
-      p("Like golf, the lower the brier score the better.")
+      p("These are average brier scores from the sites I tracked for the 2018 Men's and Women's NCAA Tournament. The first round and the Finals are also included for the NBA playoffs."),
+      p("Like golf, the lower the brier score the better."),
+      em("This site is for informational purposes only.")
 ),
    
     # Create barplot
     mainPanel(
-     plotOutput("brierPlot")
+     plotOutput("brierPlot"),
+     br(),
+     br(),
+     fluidRow(
+       column(10, align="center",
+              tableOutput("table")
+       )
   )
 )
 )
@@ -70,12 +78,12 @@ server <- function(input, output) {
   
   # Fill in plot
   output$brierPlot <- renderPlot({
+    
     data <- switch(input$sport,
                    "Men's Tourney" = all[all$sport == "mens",],
                    "Women's Tourney" = all[all$sport == "womens",],
                    "NBA Playoffs" = all[all$sport == "nba",])
-    
-    # barplot
+        # barplot
     ggplot(data = data,
            aes(x = Site, y=Avg_Brier)) + geom_bar(stat = "identity", fill = "dodgerblue3") + 
       theme_bw() + 
@@ -87,6 +95,18 @@ server <- function(input, output) {
       scale_y_continuous(limits=c(0,0.25))
     
   })
+  
+  output$table <- renderTable({
+    data <- switch(input$sport,
+                   "Men's Tourney" = all[all$sport == "mens",],
+                   "Women's Tourney" = all[all$sport == "womens",],
+                   "NBA Playoffs" = all[all$sport == "nba",])
+    
+    colnames(data)[2] <- "Score"
+    data <- data[order(data$Site),]
+   head(data[,1:2])
+  })
+  
 }
 
 shinyApp(ui, server)
