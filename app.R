@@ -85,7 +85,7 @@ server <- function(input, output) {
                    "NBA Playoffs" = all[all$sport == "nba",])
         # barplot
     ggplot(data = data,
-           aes(x = Site, y=Avg_Brier)) + geom_bar(stat = "identity", fill = "dodgerblue3") + 
+           aes(x = reorder(Site, Avg_Brier), y=Avg_Brier)) + geom_bar(stat = "identity", fill = "dodgerblue3") + 
       theme_bw() + 
       theme(axis.line = element_line(colour = "gray"),
             panel.border = element_blank(),
@@ -103,7 +103,7 @@ server <- function(input, output) {
                    "NBA Playoffs" = all[all$sport == "nba",])
     
     colnames(data)[2] <- "Score"
-    data <- data[order(data$Site),]
+    data <- data[order(data$Score),]
    head(data[,1:2])
   })
   
