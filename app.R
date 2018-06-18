@@ -9,11 +9,16 @@ library(data.table)
 mens <- read_csv("https://raw.githubusercontent.com/cdoms/ShinyTrack/master/Mens%20NCAA%20Tourney%20Probabilities%202018.csv")
 womens <- read_csv("https://raw.githubusercontent.com/cdoms/ShinyTrack/master/Womens%20NCAA%20Tourney%20Probabilities%202018.csv")
 nba <- read_csv("https://raw.githubusercontent.com/cdoms/ShinyTrack/master/NBA%20Playoffs%20Probabilities.csv")
+wc <- read_csv("https://raw.githubusercontent.com/cdoms/Forecastrackr/master/World%20Cup%20Probabilities.csv")
 
 colnames(nba)[8] <- "Result"
 nba <- nba[nba$Round == 1 | nba$Round == 4,]
 nba <- nba[!nba$Site == "Vegas",]
 mens <- mens[!mens$Site == "Vegas Spread",]
+
+wc <- wc[-11]
+wc <- wc[!wc$Site == "NumberFire" & !wc$Site == "Bing",]
+wc <- wc[complete.cases(wc),]
 
 ## exclude ESPN BPI for womens because I could only find their predictions for the first round
 
@@ -39,6 +44,15 @@ compute_brier <- function(df){
 mens <- compute_brier(mens)
 womens <- compute_brier(womens)
 nba <- compute_brier(nba)
+
+## different for world cup because there are three possible outcomes
+
+wc$brier <- ifelse(wc$Results == 1,
+                   (1 - wc$`Probability First Team Wins`)^2 + (0 - wc$`Probability Tie`)^2 + (0-wc$`Probability Second Team Wins`)^2,
+                   ifelse(wc$Results == 0.5,
+                          (0 - wc$`Probability First Team Wins`)^2 + (1 - wc$`Probability Tie`)^2 + (0-wc$`Probability Second Team Wins`)^2, 
+                          (0 - wc$`Probability First Team Wins`)^2 + (0 - wc$`Probability Tie`)^2 + (1-wc$`Probability Second Team Wins`)^2)  
+)
 
 womens$sport <- c("womens", "womens")
 mens$sport <- c("mens", "mens", "mens", "mens", "mens")
